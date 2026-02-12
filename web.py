@@ -405,8 +405,9 @@ Place:
 </html>
 """
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
+    # Wiiz opens this URL → show form
     return render_template_string(HTML_FORM)
 
 @app.route("/submit", methods=["POST"])
@@ -445,26 +446,16 @@ def submit():
         "place": request.form.get("place")
     }
 
-    try:
-        response = requests.post(
-            WEBHOOK_URL,
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=15
-        )
+    requests.post(
+        WIIZ_WEBHOOK_URL,
+        json=payload,
+        headers={"Content-Type": "application/json"}
+    )
 
-        return jsonify({
-            "status": "success",
-            "wiiz_status": response.status_code,
-            "data_sent": payload
-        })
+    return "<h3>✅ KYC Submitted Successfully. You may close this page.</h3>"
 
-    except Exception as e:
-        return jsonify({"status": "failed", "error": str(e)}), 500
-
-# ======= IMPORTANT FOR RENDER =======
+# Render requires dynamic port
 port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
-
