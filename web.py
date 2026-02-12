@@ -243,7 +243,7 @@ import threading
 app = Flask(__name__)
 
 # Read Wiiz webhook from Render environment variable
-WIIZ_WEBHOOK_URL = os.environ.get("WIIZ_WEBHOOK_URL")
+WIIZ_WEBHOOK_URL = os.environ.get("https://sandbox.wiiz.it/aiwf/webhook/595b131b-73b6-45a3-986f-080d2aa5ffbc/96dc3084-955b-4f61-b84c-8e366b628a49")
 
 if not WIIZ_WEBHOOK_URL:
     raise ValueError("WIIZ_WEBHOOK_URL environment variable is not set")
@@ -354,4 +354,5 @@ port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
 
