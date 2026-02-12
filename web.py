@@ -86,6 +86,9 @@ def home():
 
 
 # ✅ Handle form submit
+from flask import jsonify   # add this import at top if not present
+
+
 @app.route("/submit", methods=["POST"])
 def submit():
     payload = {
@@ -99,18 +102,15 @@ def submit():
 
     print("Form submitted:", payload)
 
-    # Send to Wiiz in background (prevents timeout)
+    # Send to Wiiz asynchronously (no timeout)
     threading.Thread(target=send_to_wiiz, args=(payload,)).start()
 
-    # Immediate response to user/Wiiz
-    return """
-    <html>
-        <body style="font-family:Arial;text-align:center;margin-top:50px;">
-            <h2>✅ KYC Submitted Successfully</h2>
-            <p>You may close this window.</p>
-        </body>
-    </html>
-    """
+    # ✅ Return submitted data back to Wiiz
+    return jsonify({
+        "status": "submitted",
+        "message": "KYC captured successfully",
+        "data": payload
+    })
 
 
 # ✅ Required for Render deployment
@@ -118,4 +118,5 @@ port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
 
