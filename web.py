@@ -238,6 +238,7 @@
 from flask import Flask, request, render_template_string, jsonify
 import requests
 import os
+import threading
 
 app = Flask(__name__)
 
@@ -405,14 +406,24 @@ Place:
 </html>
 """
 
-@app.route("/", methods=["GET"])
-def home():
-    # Wiiz opens this URL → show form
-    return render_template_string(HTML_FORM)
+
+
+def send_to_wiiz(payload):
+    try:
+        requests.post(
+            WIIZ_WEBHOOK_URL,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=5   # short timeout, don't block
+        )
+    except Exception as e:
+        print("Wiiz send error:", e)
+
 
 @app.route("/submit", methods=["POST"])
 def submit():
-    payload = {
+
+     payload = {
         "acType": request.form.get("ac_type"),
         "ekyc": request.form.get("ekyc"),
         "branch": request.form.get("branch"),
@@ -446,17 +457,19 @@ def submit():
         "place": request.form.get("place")
     }
 
-    requests.post(
-        WIIZ_WEBHOOK_URL,
-        json=payload,
-        headers={"Content-Type": "application/json"}
-    )
+    # 🔥 Send to Wiiz in background thread (no blocking)
+    threading.Thread(target=send_to_wiiz, args=(payload,)).start()
 
-    return "<h3>✅ KYC Submitted Successfully. You may close this page.</h3>"
+    # 🔥 Immediately respond to browser / Wiiz
+    return """
+    <h3>✅ KYC Submitted Successfully</h3>
+    <p>You may close this window.</p>
+    """
 
 # Render requires dynamic port
 port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
 
