@@ -242,7 +242,7 @@ import os
 app = Flask(__name__)
 
 # ======= PASTE YOUR WIIZ GENERATED WEBHOOK HERE =======
-WEBHOOK_URL = os.environ.get("https://sandbox.wiiz.it/aiwf/webhook/595b131b-73b6-45a3-986f-080d2aa5ffbc/96dc3084-955b-4f61-b84c-8e366b628a49")
+WIIZ_WEBHOOK_URL = os.environ.get("https://sandbox.wiiz.it/aiwf/webhook/595b131b-73b6-45a3-986f-080d2aa5ffbc/96dc3084-955b-4f61-b84c-8e366b628a49")
 # =======================================================
 
 HTML_FORM = """
@@ -459,3 +459,4 @@ port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
