@@ -80,10 +80,9 @@ Email:
 
 
 # ✅ When Wiiz opens URL → show form
-@app.route("/", methods=["GET"])
+@app.route("/", methods=["GET", "POST"])
 def home():
     return render_template_string(HTML_FORM)
-
 
 # ✅ Handle form submit
 from flask import jsonify   # add this import at top if not present
@@ -118,5 +117,6 @@ port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
 
 
