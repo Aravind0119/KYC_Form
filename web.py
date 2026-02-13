@@ -64,6 +64,15 @@ def home():
 # Store submitted data
 @app.route("/submit", methods=["GET", "POST"])
 def submit():
+
+    # If GET request → just return info
+    if request.method == "GET":
+        return jsonify({
+            "status": "ready",
+            "message": "Submit endpoint is ready. Please POST form data."
+        })
+
+    # If POST request → store data
     global stored_data
 
     stored_data = {
@@ -77,14 +86,11 @@ def submit():
 
     print("Stored Data:", stored_data)
 
-    return """
-    <html>
-        <body style="font-family:Arial;text-align:center;margin-top:50px;">
-            <h2>✅ KYC Submitted Successfully</h2>
-            <p>You may close this window.</p>
-        </body>
-    </html>
-    """
+    return jsonify({
+        "status": "submitted",
+        "data": stored_data
+    })
+
 
 
 # When Wiiz calls API → return stored data
@@ -109,4 +115,5 @@ port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
 
