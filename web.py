@@ -1,36 +1,12 @@
-from flask import Flask, request, render_template_string
-import requests
+from flask import Flask, request, render_template_string, jsonify
 import os
-import threading
 
 app = Flask(__name__)
 
-# ✅ Read Wiiz webhook URL from Render Environment Variable
-WIIZ_WEBHOOK_URL = os.environ.get("https://sandbox.wiiz.it/aiwf/webhook/595b131b-73b6-45a3-986f-080d2aa5ffbc/96dc3084-955b-4f61-b84c-8e366b628a49")
+# ✅ Global dictionary to store submitted data
+stored_data = {}
 
-if not WIIZ_WEBHOOK_URL:
-    print("ERROR: WIIZ_WEBHOOK_URL environment variable is missing")
-
-
-# ✅ Background sender (so Wiiz doesn't timeout)
-def send_to_wiiz(payload):
-    try:
-        print("Sending payload to Wiiz:", payload)
-
-        response = requests.post(
-            WIIZ_WEBHOOK_URL,
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=8
-        )
-
-        print("Wiiz response:", response.status_code)
-
-    except Exception as e:
-        print("Wiiz send error:", str(e))
-
-
-# ✅ KYC FORM UI
+# ------------------ HTML FORM ------------------
 HTML_FORM = """
 <!DOCTYPE html>
 <html>
@@ -41,7 +17,6 @@ body { font-family: Arial; background:#f4f4f4; }
 .container { width:60%; margin:auto; background:white; padding:20px; margin-top:40px; }
 input { width:100%; padding:8px; margin-bottom:12px; }
 button { padding:10px 20px; background:#003399; color:white; border:none; cursor:pointer; }
-h2 { color:#003399; }
 </style>
 </head>
 <body>
@@ -78,19 +53,20 @@ Email:
 </html>
 """
 
+# ------------------ ROUTES ------------------
 
-# ✅ When Wiiz opens URL → show form
-@app.route("/", methods=["GET", "POST"])
+# Show form
+@app.route("/", methods=["GET"])
 def home():
     return render_template_string(HTML_FORM)
 
-# ✅ Handle form submit
-from flask import jsonify   # add this import at top if not present
 
-
+# Store submitted data
 @app.route("/submit", methods=["POST"])
 def submit():
-    payload = {
+    global stored_data
+
+    stored_data = {
         "customerNo": request.form.get("customerNo"),
         "fullName": request.form.get("fullName"),
         "aadhaarNo": request.form.get("aadhaarNo"),
@@ -99,24 +75,37 @@ def submit():
         "email": request.form.get("email")
     }
 
-    print("Form submitted:", payload)
+    print("Stored Data:", stored_data)
 
-    # Send to Wiiz asynchronously (no timeout)
-    threading.Thread(target=send_to_wiiz, args=(payload,)).start()
+    return """
+    <html>
+        <body style="font-family:Arial;text-align:center;margin-top:50px;">
+            <h2>✅ KYC Submitted Successfully</h2>
+            <p>You may close this window.</p>
+        </body>
+    </html>
+    """
 
-    # ✅ Return submitted data back to Wiiz
+
+# When Wiiz calls API → return stored data
+@app.route("/get-data", methods=["POST", "GET"])
+def get_data():
+    global stored_data
+
+    if not stored_data:
+        return jsonify({
+            "status": "no_data",
+            "message": "No form submitted yet"
+        })
+
     return jsonify({
-        "status": "submitted",
-        "message": "KYC captured successfully",
-        "data": payload
+        "status": "success",
+        "data": stored_data
     })
 
 
-# ✅ Required for Render deployment
+# Required for Render
 port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
-
-
-
