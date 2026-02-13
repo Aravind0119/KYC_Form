@@ -62,7 +62,7 @@ def home():
 
 
 # Store submitted data
-@app.route("/submit", methods=["POST"])
+@app.route("/submit", methods=["GET", "POST"])
 def submit():
     global stored_data
 
@@ -109,3 +109,4 @@ port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
