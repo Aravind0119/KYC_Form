@@ -210,43 +210,39 @@ def submit():
         decision = "REVIEW_REQUIRED"
         risk_flag = "LOW_INCOME"
 
-    # ------------------- MASKING -------------------
+# ------------------- MASKING -------------------
 
-    masked_profile = {
-        "customerId": data["customerId"],
-        "fullName": data["fullName"],
-        "maskedAadhaar": "XXXX XXXX " + data["aadhaarNo"][-4:],
-        "maskedPAN": data["panNo"][:5] + "XXXX",
-        "maskedMobile": "XXXXXX" + data["mobile"][-4:],
-        "dob": data["dob"],
-        "city": data["city"],
-        "state": data["state"]
-    }
+masked_data = {
+    "customerId": data.get("customerId"),
+    "fullName": data.get("fullName"),
+    "guardianName": data.get("guardianName"),
+    "dob": data.get("dob"),
+    "gender": data.get("gender"),
+    "nationality": data.get("nationality"),
+    "maskedAadhaar": "XXXX XXXX " + data["aadhaarNo"][-4:],
+    "maskedPAN": data["panNo"][:5] + "XXXX",
+    "maskedMobile": "XXXXXX" + data["mobile"][-4:],
+    "email": data.get("email"),
+    "address": data.get("address"),
+    "city": data.get("city"),
+    "state": data.get("state"),
+    "pincode": data.get("pincode"),
+    "occupation": data.get("occupation"),
+    "employer": data.get("employer"),
+    "annualIncome": data.get("annualIncome"),
+    "sourceOfFunds": data.get("sourceOfFunds"),
+    "pepStatus": data.get("pepStatus"),
+    "taxCountry": data.get("taxCountry"),
+    "signature": data.get("signature"),
+    "signatureDate": data.get("signatureDate")
+}
 
-    financial_profile = {
-        "occupation": data["occupation"],
-        "annualIncome": data["annualIncome"],
-        "sourceOfFunds": data["sourceOfFunds"]
-    }
+stored_data = masked_data
 
-    regulatory_profile = {
-        "pepStatus": data["pepStatus"],
-        "taxCountry": data["taxCountry"],
-        "fatcaCompliant": True
-    }
+return jsonify({
+    "data": masked_data
+})
 
-    stored_data = {
-        "decision": decision,
-        "risk_flag": risk_flag,
-        "customer_profile": masked_profile,
-        "financial_profile": financial_profile,
-        "regulatory_profile": regulatory_profile
-    }
-
-    return jsonify({
-        "status": "success",
-        "kyc_result": stored_data
-    })
 
 
 @app.route("/get-data", methods=["GET", "POST"])
@@ -267,3 +263,4 @@ port = int(os.environ.get("PORT", 4000))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port)
+
