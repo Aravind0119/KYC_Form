@@ -1,5 +1,4 @@
 from flask import Flask, request, render_template_string, jsonify
-import os
 import re
 from datetime import datetime
 
@@ -13,7 +12,7 @@ HTML_FORM = """
 <!DOCTYPE html>
 <html>
 <head>
-<title>Bank KYC Application</title>
+<title>Bank Customer Onboarding - KYC</title>
 <style>
 body { font-family: Arial; background:#f4f6f9; }
 .container { width:80%; margin:auto; background:white; padding:30px; margin-top:20px; }
@@ -29,7 +28,7 @@ button { padding:12px 25px; background:#003399; color:white; border:none; cursor
 <div class="container">
 <h2>Customer Due Diligence (CDD) / KYC Application</h2>
 
-<form method="POST" action="/submit">
+<form method="POST">
 
 <div class="section">
 <h3>1. Identification Details</h3>
@@ -146,121 +145,83 @@ Date:
 </html>
 """
 
-# ------------------- ROUTES -------------------
+# ------------------- ROUTE -------------------
 
-@app.route("/", methods=["GET"])
-def home():
-    return render_template_string(HTML_FORM)
-
-
-@app.route("/submit", methods=["POST"])
-def submit():
+@app.route("/", methods=["GET", "POST"])
+def kyc_application():
 
     global stored_data
+
+    if request.method == "GET":
+        return render_template_string(HTML_FORM)
+
     data = request.form.to_dict()
     errors = []
 
-    # ------------------- VALIDATIONS -------------------
+    # ---------------- VALIDATION ----------------
 
-    # Aadhaar (12 digits)
     if not re.fullmatch(r"\d{12}", data.get("aadhaarNo", "")):
         errors.append("Invalid Aadhaar format")
 
-    # PAN (ABCDE1234F)
     if not re.fullmatch(r"[A-Z]{5}[0-9]{4}[A-Z]", data.get("panNo", "")):
         errors.append("Invalid PAN format")
 
-    # Mobile (10 digits)
     if not re.fullmatch(r"\d{10}", data.get("mobile", "")):
         errors.append("Invalid mobile number")
 
-    # PIN (6 digits)
     if not re.fullmatch(r"\d{6}", data.get("pincode", "")):
         errors.append("Invalid PIN code")
 
-    # Income
-    try:
-        if int(data.get("annualIncome", 0)) <= 0:
-            errors.append("Income must be greater than 0")
-    except:
-        errors.append("Invalid income value")
-
-    # DOB
     try:
         datetime.strptime(data.get("dob"), "%Y-%m-%d")
     except:
-        errors.append("Invalid DOB format")
+        errors.append("Invalid Date of Birth")
+
+    try:
+        income = int(data.get("annualIncome", 0))
+        if income <= 0:
+            errors.append("Income must be greater than zero")
+    except:
+        errors.append("Invalid income value")
 
     if errors:
         return jsonify({
-            "status": "REJECTED",
-            "validation_errors": errors
+            "data": {
+                "errors": errors
+            }
         }), 400
 
-    # ------------------- RISK LOGIC -------------------
+    # ---------------- MASKING ----------------
 
-    decision = "APPROVED"
-    risk_flag = "LOW"
+    masked_data = {
+        "customerId": data.get("customerId"),
+        "fullName": data.get("fullName"),
+        "guardianName": data.get("guardianName"),
+        "dob": data.get("dob"),
+        "gender": data.get("gender"),
+        "nationality": data.get("nationality"),
+        "maskedAadhaar": "XXXX XXXX " + data["aadhaarNo"][-4:],
+        "maskedPAN": data["panNo"][:5] + "XXXX",
+        "maskedMobile": "XXXXXX" + data["mobile"][-4:],
+        "email": data.get("email"),
+        "address": data.get("address"),
+        "city": data.get("city"),
+        "state": data.get("state"),
+        "pincode": data.get("pincode"),
+        "occupation": data.get("occupation"),
+        "employer": data.get("employer"),
+        "annualIncome": data.get("annualIncome"),
+        "sourceOfFunds": data.get("sourceOfFunds"),
+        "pepStatus": data.get("pepStatus"),
+        "taxCountry": data.get("taxCountry"),
+        "signature": data.get("signature"),
+        "signatureDate": data.get("signatureDate")
+    }
 
-    if data.get("pepStatus") == "Yes":
-        decision = "REVIEW_REQUIRED"
-        risk_flag = "HIGH_PEP"
+    stored_data = masked_data
 
-    if int(data.get("annualIncome")) < 100000:
-        decision = "REVIEW_REQUIRED"
-        risk_flag = "LOW_INCOME"
+    return jsonify({
+        "data": masked_data
+    })
 
-# ------------------- MASKING -------------------
-
-masked_data = {
-    "customerId": data.get("customerId"),
-    "fullName": data.get("fullName"),
-    "guardianName": data.get("guardianName"),
-    "dob": data.get("dob"),
-    "gender": data.get("gender"),
-    "nationality": data.get("nationality"),
-    "maskedAadhaar": "XXXX XXXX " + data["aadhaarNo"][-4:],
-    "maskedPAN": data["panNo"][:5] + "XXXX",
-    "maskedMobile": "XXXXXX" + data["mobile"][-4:],
-    "email": data.get("email"),
-    "address": data.get("address"),
-    "city": data.get("city"),
-    "state": data.get("state"),
-    "pincode": data.get("pincode"),
-    "occupation": data.get("occupation"),
-    "employer": data.get("employer"),
-    "annualIncome": data.get("annualIncome"),
-    "sourceOfFunds": data.get("sourceOfFunds"),
-    "pepStatus": data.get("pepStatus"),
-    "taxCountry": data.get("taxCountry"),
-    "signature": data.get("signature"),
-    "signatureDate": data.get("signatureDate")
-}
-
-stored_data = masked_data
-
-return jsonify({
-    "data": masked_data
-})
-
-
-
-@app.route("/get-data", methods=["GET", "POST"])
-def get_data():
-
-    if not stored_data:
-        return jsonify({
-            "status": "no_data",
-            "message": "No KYC submitted"
-        })
-
-    return jsonify(stored_data)
-
-
-# ------------------- DEPLOYMENT -------------------
-
-port = int(os.environ.get("PORT", 4000))
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=port)
-
+# No explicit port block (production ready)
