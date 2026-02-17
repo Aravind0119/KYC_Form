@@ -4,7 +4,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-stored_data = {}
+stored_data = None   # Initialize properly
+
 
 # ------------------- BANK KYC FORM -------------------
 
@@ -30,21 +31,11 @@ button { padding:12px 25px; background:#003399; color:white; border:none; cursor
 
 <form method="POST">
 
-<div class="section">
-<h3>1. Identification Details</h3>
-
-Customer ID:
-<input type="text" name="customerId" required>
-
-Full Name:
-<input type="text" name="fullName" required>
-
-Father / Spouse Name:
-<input type="text" name="guardianName" required>
-
-Date of Birth:
-<input type="date" name="dob" required>
-
+<h3>Identification Details</h3>
+Customer ID: <input type="text" name="customerId" required>
+Full Name: <input type="text" name="fullName" required>
+Guardian Name: <input type="text" name="guardianName" required>
+Date of Birth: <input type="date" name="dob" required>
 Gender:
 <select name="gender" required>
 <option value="">Select</option>
@@ -52,42 +43,19 @@ Gender:
 <option>Female</option>
 <option>Other</option>
 </select>
+Nationality: <input type="text" name="nationality" required>
+PAN: <input type="text" name="panNo" required>
+Aadhaar: <input type="text" name="aadhaarNo" required>
 
-Nationality:
-<input type="text" name="nationality" required>
+<h3>Contact Details</h3>
+Mobile: <input type="text" name="mobile" required>
+Email: <input type="email" name="email" required>
+Address: <input type="text" name="address" required>
+City: <input type="text" name="city" required>
+State: <input type="text" name="state" required>
+PIN Code: <input type="text" name="pincode" required>
 
-PAN Number:
-<input type="text" name="panNo" required>
-
-Aadhaar Number:
-<input type="text" name="aadhaarNo" required>
-</div>
-
-<div class="section">
-<h3>2. Contact Details</h3>
-
-Mobile Number:
-<input type="text" name="mobile" required>
-
-Email:
-<input type="email" name="email" required>
-
-Residential Address:
-<input type="text" name="address" required>
-
-City:
-<input type="text" name="city" required>
-
-State:
-<input type="text" name="state" required>
-
-PIN Code:
-<input type="text" name="pincode" required>
-</div>
-
-<div class="section">
-<h3>3. Employment & Financial Details</h3>
-
+<h3>Employment & Financial Details</h3>
 Occupation:
 <select name="occupation" required>
 <option value="">Select</option>
@@ -98,54 +66,32 @@ Occupation:
 <option>Student</option>
 <option>Retired</option>
 </select>
+Employer: <input type="text" name="employer">
+Annual Income: <input type="number" name="annualIncome" required>
+Source of Funds: <input type="text" name="sourceOfFunds" required>
 
-Employer Name:
-<input type="text" name="employer">
-
-Annual Income (INR):
-<input type="number" name="annualIncome" required>
-
-Source of Funds:
-<input type="text" name="sourceOfFunds" required>
-</div>
-
-<div class="section">
-<h3>4. Regulatory Declarations</h3>
-
-Politically Exposed Person (PEP):
+<h3>Regulatory Declarations</h3>
+PEP:
 <select name="pepStatus" required>
 <option value="">Select</option>
 <option>No</option>
 <option>Yes</option>
 </select>
-
-Tax Residency Country:
-<input type="text" name="taxCountry" required>
-
-<input type="checkbox" name="fatcaDeclaration" required>
-I confirm FATCA/CRS compliance.
+Tax Country: <input type="text" name="taxCountry" required>
+Signature: <input type="text" name="signature" required>
+Signature Date: <input type="date" name="signatureDate" required>
 
 <br><br>
-<input type="checkbox" name="customerDeclaration" required>
-I confirm information provided is true.
-
-Signature:
-<input type="text" name="signature" required>
-
-Date:
-<input type="date" name="signatureDate" required>
-</div>
-
 <button type="submit">Submit Application</button>
 
 </form>
 </div>
-
 </body>
 </html>
 """
 
-# ------------------- ROUTE -------------------
+
+# ------------------- MAIN ROUTE -------------------
 
 @app.route("/", methods=["GET", "POST"])
 def kyc_application():
@@ -158,31 +104,30 @@ def kyc_application():
     data = request.form.to_dict()
     errors = []
 
-    # ---------------- VALIDATION ----------------
-
+    # Validation
     if not re.fullmatch(r"\d{12}", data.get("aadhaarNo", "")):
-        errors.append("Invalid Aadhaar format")
+        errors.append("Invalid Aadhaar")
 
     if not re.fullmatch(r"[A-Z]{5}[0-9]{4}[A-Z]", data.get("panNo", "")):
-        errors.append("Invalid PAN format")
+        errors.append("Invalid PAN")
 
     if not re.fullmatch(r"\d{10}", data.get("mobile", "")):
-        errors.append("Invalid mobile number")
+        errors.append("Invalid Mobile")
 
     if not re.fullmatch(r"\d{6}", data.get("pincode", "")):
-        errors.append("Invalid PIN code")
+        errors.append("Invalid PIN Code")
 
     try:
-        datetime.strptime(data.get("dob"), "%Y-%m-%d")
+        datetime.strptime(data.get("dob", ""), "%Y-%m-%d")
     except:
-        errors.append("Invalid Date of Birth")
+        errors.append("Invalid DOB")
 
     try:
         income = int(data.get("annualIncome", 0))
         if income <= 0:
-            errors.append("Income must be greater than zero")
+            errors.append("Invalid Income")
     except:
-        errors.append("Invalid income value")
+        errors.append("Invalid Income")
 
     if errors:
         return jsonify({
@@ -191,9 +136,8 @@ def kyc_application():
             }
         }), 400
 
-    # ---------------- MASKING ----------------
-
-    masked_data = {
+    # Masking
+    stored_data = {
         "customerId": data.get("customerId"),
         "fullName": data.get("fullName"),
         "guardianName": data.get("guardianName"),
@@ -210,7 +154,7 @@ def kyc_application():
         "pincode": data.get("pincode"),
         "occupation": data.get("occupation"),
         "employer": data.get("employer"),
-        "annualIncome": data.get("annualIncome"),
+        "annualIncome": income,
         "sourceOfFunds": data.get("sourceOfFunds"),
         "pepStatus": data.get("pepStatus"),
         "taxCountry": data.get("taxCountry"),
@@ -218,20 +162,17 @@ def kyc_application():
         "signatureDate": data.get("signatureDate")
     }
 
-    stored_data = masked_data
-
     return jsonify({
-        "data": masked_data
+        "data": stored_data
     })
 
-# No explicit port block (production ready)
 
-
+# ------------------- GET STORED DATA -------------------
 
 @app.route("/get-data", methods=["GET"])
 def get_data():
 
-    if not stored_data
+    if not stored_data:
         return jsonify({
             "data": {
                 "message": "No KYC data available"
@@ -241,5 +182,3 @@ def get_data():
     return jsonify({
         "data": stored_data
     })
-
-
