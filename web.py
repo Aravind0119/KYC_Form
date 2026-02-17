@@ -231,7 +231,7 @@ def kyc_application():
 @app.route("/get-data", methods=["GET"])
 def get_data():
 
-    if not  masked_data
+    if not stored_data
         return jsonify({
             "data": {
                 "message": "No KYC data available"
@@ -239,6 +239,7 @@ def get_data():
         })
 
     return jsonify({
-        "data":  masked_data
+        "data": stored_data
     })
+
 
